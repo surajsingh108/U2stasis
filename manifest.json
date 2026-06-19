@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Neuro-Cinematic Tracker",
+  "version": "3.0",
+  "description": "Predicts YouTube viewing retention live using CLIP embeddings — runs entirely in the browser, no server needed.",
+  "permissions": ["storage", "alarms"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/watch*"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Neuro-Cinematic Tracker"
+  }
+}

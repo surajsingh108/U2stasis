@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# ML artifacts — large files, user-specific, never commit
+model_state.joblib
+session_history.jsonl
+session_history.json
+.cache/
+
+# Secrets
+.env
+
+# Transformers.js bundled library — large, reproducible via download
+# Keep this line commented out if you WANT to commit it (avoids CDN dependency at load time)
+# transformers.min.js
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Zip archives
+*.zip
+
+# Old v1 scaffold — generates outdated Gemini-based version, not relevant to v3
+readmecreate.py
+
+# Private technical reference — not for public repos
+REFERENCE.md
+
+# Implementation files — methodology not for public repos
+app.py
+requirements.txt
+ml_workbench.ipynb
+background.js

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, "Segoe UI", sans-serif; width: 340px; margin: 0; padding: 14px; color: #1a1a1a; }
+  h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: #444; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* Live monitor */
+  #monitor { margin-bottom: 14px; }
+  #monitor .offline { font-size: 12px; color: #888; }
+  .session { background: #f8f9fa; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+  .session .title { font-size: 13px; font-weight: 500; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .retention { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .retention.high { color: #1e8e3e; }
+  .retention.mid  { color: #f9ab00; }
+  .retention.low  { color: #c5221f; }
+  .bars { display: grid; grid-template-columns: 60px 1fr 32px; gap: 3px 6px; align-items: center; font-size: 11px; }
+  .bars .label { color: #666; }
+  .bar-track { background: #e0e0e0; border-radius: 3px; height: 6px; }
+  .bar-fill  { height: 6px; border-radius: 3px; background: #1a73e8; }
+  .bars .val { color: #333; text-align: right; }
+  .trained { font-size: 11px; color: #888; margin-top: 4px; }
+
+  hr { border: none; border-top: 1px solid #e0e0e0; margin: 12px 0; }
+
+  /* Diagnostics */
+  label { font-size: 12px; color: #555; display: block; margin-bottom: 4px; }
+  select, button { font-size: 13px; padding: 7px; width: 100%; box-sizing: border-box; margin-bottom: 10px; border-radius: 4px; }
+  select { border: 1px solid #ccc; }
+  button { cursor: pointer; background: #1a73e8; color: white; border: none; }
+  button:disabled { background: #99b9e8; cursor: default; }
+  #result { font-size: 12px; line-height: 1.5; }
+  .flag { color: #c5221f; margin-bottom: 4px; }
+  .change { margin-bottom: 6px; }
+  .rationale { color: #777; }
+  .timestamp { color: #888; font-size: 11px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+  <h2>Live monitoring</h2>
+  <div id="monitor"><div class="offline">No active video detected.</div></div>
+
+  <hr>
+
+  <h2>Model diagnostics</h2>
+  <label for="interval">Run automatically</label>
+  <select id="interval">
+    <option value="0">Off (on demand only)</option>
+    <option value="360">Every 6 hours</option>
+    <option value="1440">Every 24 hours</option>
+    <option value="10080">Every 7 days</option>
+  </select>
+
+  <button id="runNow">Run diagnostics now</button>
+  <div id="result">No diagnostics run yet.</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
