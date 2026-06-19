@@ -3,30 +3,60 @@
 <head>
 <meta charset="utf-8">
 <style>
-  body { font-family: -apple-system, "Segoe UI", sans-serif; width: 340px; margin: 0; padding: 14px; color: #1a1a1a; }
-  h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: #444; text-transform: uppercase; letter-spacing: 0.04em; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", sans-serif; width: 360px; margin: 0; padding: 14px; color: #1a1a1a; }
+  h2 { font-size: 11px; font-weight: 600; margin: 0 0 10px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; }
 
-  /* Live monitor */
-  #monitor { margin-bottom: 14px; }
-  #monitor .offline { font-size: 12px; color: #888; }
-  .session { background: #f8f9fa; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
-  .session .title { font-size: 13px; font-weight: 500; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .retention { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-  .retention.high { color: #1e8e3e; }
-  .retention.mid  { color: #f9ab00; }
-  .retention.low  { color: #c5221f; }
-  .bars { display: grid; grid-template-columns: 60px 1fr 32px; gap: 3px 6px; align-items: center; font-size: 11px; }
-  .bars .label { color: #666; }
-  .bar-track { background: #e0e0e0; border-radius: 3px; height: 6px; }
-  .bar-fill  { height: 6px; border-radius: 3px; background: #1a73e8; }
-  .bars .val { color: #333; text-align: right; }
-  .trained { font-size: 11px; color: #888; margin-top: 4px; }
+  /* Session card */
+  .session { background: #f8f9fa; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .title { font-size: 13px; font-weight: 500; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  hr { border: none; border-top: 1px solid #e0e0e0; margin: 12px 0; }
+  /* Big score */
+  .score-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .score { font-size: 36px; font-weight: 700; line-height: 1; }
+  .score.high { color: #1e8e3e; }
+  .score.mid  { color: #f9ab00; }
+  .score.low  { color: #c5221f; }
+  .score-label { font-size: 12px; color: #666; }
+
+  /* Stats row */
+  .stats { display: flex; gap: 14px; font-size: 11px; color: #666; margin-bottom: 10px; }
+  .stats span { display: flex; align-items: center; gap: 3px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot.green  { background: #1e8e3e; }
+  .dot.yellow { background: #f9ab00; }
+  .dot.red    { background: #c5221f; }
+  .dot.blue   { background: #1a73e8; }
+  .dot.grey   { background: #aaa; }
+
+  /* Timeline */
+  .timeline-wrap { margin-bottom: 6px; }
+  .timeline-label { font-size: 10px; color: #aaa; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .timeline-track { position: relative; height: 6px; background: #e0e0e0; border-radius: 3px; }
+  .timeline-progress { height: 6px; background: #1a73e8; border-radius: 3px; }
+  .timeline-events { position: absolute; top: 0; left: 0; width: 100%; height: 6px; }
+  .t-event { position: absolute; width: 6px; height: 6px; border-radius: 50%; transform: translateX(-50%); top: 0; }
+  .t-event.seek    { background: #1e8e3e; }
+  .t-event.pause   { background: #f9ab00; }
+  .t-event.tab_hide { background: #c5221f; }
+  .t-event.tab_show { background: #aaa; }
+  .t-event.rate    { background: #9c27b0; }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 10px; color: #888; margin-top: 5px; }
+  .legend span { display: flex; align-items: center; gap: 3px; }
+
+  /* Weights */
+  .weights { font-size: 10px; color: #aaa; margin-top: 6px; font-family: monospace; }
+
+  .trained { font-size: 11px; color: #888; margin-top: 2px; }
+  .offline { font-size: 12px; color: #888; }
+
+  hr { border: none; border-top: 1px solid #e8e8e8; margin: 12px 0; }
 
   /* Diagnostics */
   label { font-size: 12px; color: #555; display: block; margin-bottom: 4px; }
-  select, button { font-size: 13px; padding: 7px; width: 100%; box-sizing: border-box; margin-bottom: 10px; border-radius: 4px; }
+  select, button { font-size: 13px; padding: 7px; width: 100%; margin-bottom: 10px; border-radius: 4px; }
   select { border: 1px solid #ccc; }
   button { cursor: pointer; background: #1a73e8; color: white; border: none; }
   button:disabled { background: #99b9e8; cursor: default; }
@@ -39,7 +69,7 @@
 </head>
 <body>
   <h2>Live monitoring</h2>
-  <div id="monitor"><div class="offline">No active video detected.</div></div>
+  <div id="monitor"><div class="offline">No active video — play a YouTube video to start monitoring.</div></div>
 
   <hr>
 
@@ -51,7 +81,6 @@
     <option value="1440">Every 24 hours</option>
     <option value="10080">Every 7 days</option>
   </select>
-
   <button id="runNow">Run diagnostics now</button>
   <div id="result">No diagnostics run yet.</div>
 
