@@ -57,17 +57,12 @@ function renderSession(s, trained, weights) {
     const cls   = scoreClass(pct);
     const title = s.title || s.video_id;
 
-    const tabStatus = s.tab_hidden
-        ? '<span><div class="dot red"></div> tab away</span>'
-        : '<span><div class="dot green"></div> watching</span>';
-
+    const tabStatus = s.tab_hidden ? '👁️ tab away' : '▶ watching';
     const rate = s.playback_rate || 1;
     const rateStr = rate === 1 ? '1×' : `${rate}×`;
-
     const engPct = Math.round((s.engagement ?? 0.5) * 100);
-    const engDot = engPct >= 70 ? 'green' : engPct >= 40 ? 'yellow' : 'red';
 
-    const wLabels = weights
+    const wLabels = weights && weights.length >= 6
         ? `align:${weights[0].toFixed(2)} eng:${weights[1].toFixed(2)} seek:${weights[2].toFixed(2)} hidden:${weights[3].toFixed(2)} pause:${weights[4].toFixed(2)} bias:${weights[5].toFixed(2)}`
         : '';
 
@@ -79,10 +74,10 @@ function renderSession(s, trained, weights) {
         <div class="score-label">chance you finish</div>
       </div>
       <div class="stats">
-        ${tabStatus}
-        <span><div class="dot ${engDot}"></div> engagement ${engPct}</span>
+        <span>${tabStatus}</span>
+        <span>🧠 eng ${engPct}</span>
         <span>⏩ ${rateStr}</span>
-        <span>📐 align ${Math.round((s.alignment ?? 0.5) * 100)}</span>
+        <span>🎯 align ${Math.round((s.alignment ?? 0.5) * 100)}</span>
       </div>
       ${renderTimeline(s.timeline, s.progress_percent ?? s.last_progress, s.duration_s)}
       <div class="trained">${trained} video${trained !== 1 ? 's' : ''} trained on so far</div>

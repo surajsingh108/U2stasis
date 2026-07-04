@@ -38,5 +38,5 @@ REFERENCE.md
 # Implementation files — methodology not for public repos
 app.py
 requirements.txt
-ml_workbench.ipynb
+*.ipynb
 background.js
