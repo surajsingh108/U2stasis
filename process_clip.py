@@ -80,10 +80,10 @@ def add_clip_features(df):
         from PIL import Image
 
     # Load CLIP pipeline
-    print('Loading CLIP pipeline (Xenova/clip-vit-base-patch32)...')
-    print('  First time: downloads ~100MB (one-time cache)')
+    print('Loading CLIP pipeline (openai/clip-vit-base-patch32)...')
+    print('  First time: downloads ~500MB (one-time cache)')
     try:
-        clip_pipeline = pipeline('feature-extraction', model='Xenova/clip-vit-base-patch32')
+        clip_pipeline = pipeline('feature-extraction', model='openai/clip-vit-base-patch32')
         print('✓ CLIP loaded successfully')
     except Exception as e:
         print(f'✗ Failed to load CLIP: {e}')

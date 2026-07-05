@@ -16,7 +16,7 @@ def merge_history(json_file, main_file='session_history.jsonl'):
     """Merge a downloaded JSON file into the main JSONL."""
 
     print(f"Reading {json_file}...")
-    with open(json_file) as f:
+    with open(json_file, encoding='utf-8') as f:
         new_records = json.load(f)
 
     print(f"  {len(new_records)} records found")
@@ -24,7 +24,7 @@ def merge_history(json_file, main_file='session_history.jsonl'):
     # Read existing
     existing = []
     if Path(main_file).exists():
-        with open(main_file) as f:
+        with open(main_file, encoding='utf-8') as f:
             for line in f:
                 if line.strip():
                     try:
@@ -49,7 +49,7 @@ def merge_history(json_file, main_file='session_history.jsonl'):
         print(f"  {duplicates} duplicates removed")
 
     # Normalize and write
-    with open(main_file, 'w') as f:
+    with open(main_file, 'w', encoding='utf-8') as f:
         for rec in final:
             clean = {
                 'timestamp': rec.get('timestamp', ''),
@@ -57,16 +57,17 @@ def merge_history(json_file, main_file='session_history.jsonl'):
                 'title': rec.get('title', ''),
                 'final_progress_percent': rec.get('final_progress_percent', 0),
                 'user_stayed': rec.get('user_stayed', 0),
-                'alignment': rec.get('alignment', 0.5),
-                'novelty': rec.get('novelty', 0.5),
-                'drift': rec.get('drift', 0.5),
                 'title_signal': rec.get('title_signal', 0.5),
                 'engagement': rec.get('engagement', 0.5),
                 'seek_back_rate': rec.get('seek_back_rate', 0.0),
                 'tab_hidden_rate': rec.get('tab_hidden_rate', 0.0),
                 'long_pause_rate': rec.get('long_pause_rate', 0.0),
+                'alignment': rec.get('alignment', 0.5),
+                'novelty': rec.get('novelty', 0.5),
+                'drift': rec.get('drift', 0.5),
                 'predicted_retention_before_update': rec.get('predicted_retention_before_update'),
                 'weights_after': rec.get('weights_after'),
+                'frame': rec.get('frame'),  # Keep frame data for CLIP processing
             }
             f.write(json.dumps(clean, separators=(',', ':')) + '\n')
 

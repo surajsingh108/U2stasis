@@ -24,7 +24,7 @@ This project combines a **real-time Chrome extension** with **machine learning**
 4. Click **Load unpacked** → select this folder
 5. Open a YouTube video
 
-**First run:** Extension downloads AI model (~45 MB, cached once in your browser). Everything runs locally afterward — no server, no account needed.
+**First run:** Everything runs locally immediately — no server, no account needed. Optional: run `python process_clip.py` offline to add visual features via CLIP (~500 MB download, one-time cache).
 
 ### Use It
 
