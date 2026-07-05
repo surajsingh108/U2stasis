@@ -1,42 +1,50 @@
-# Python
+# === ENVIRONMENT & BUILD ===
 __pycache__/
 *.py[cod]
 *.pyo
 .venv/
 venv/
 env/
-
-# ML artifacts — large files, user-specific, never commit
-model_state.joblib
-session_history.jsonl
-session_history.json
+.env
 .cache/
 
-# Secrets
-.env
+# === PERSONAL DATA (User's Watch History) ===
+# Do NOT commit personal viewing data
+session_history.jsonl
+session_history.json
+session_history_*.json
+new_records.json
+*.jsonl
+import_history.py
 
-# Transformers.js bundled library — large, reproducible via download
-# Keep this line commented out if you WANT to commit it (avoids CDN dependency at load time)
+
+# === LARGE/EXTERNAL DEPENDENCIES ===
+# Large JS bundle — reproducible via CDN or build
+# Uncomment if you want to commit it locally
 # transformers.min.js
 
-# Jupyter
-.ipynb_checkpoints/
-
-# OS
+# === IDE & OS ===
 .DS_Store
 Thumbs.db
+.ipynb_checkpoints/
+.vscode/
+.idea/
 
-# Zip archives
+# === ARCHIVE ===
 *.zip
 
-# Old v1 scaffold — generates outdated Gemini-based version, not relevant to v3
+# === TEMPORARY TEST FILES ===
+auto_export.html
+export_check.js
+
+# === ML ARTIFACTS ===
+model_state.joblib
+
+# === OPTIONAL: Old/Deprecated Files ===
 readmecreate.py
-
-# Private technical reference — not for public repos
-REFERENCE.md
-
-# Implementation files — methodology not for public repos
 app.py
 requirements.txt
+
+# === JUPYTER NOTEBOOKS ===
+# Notebooks are generated/executed — keep .py and .md only
 *.ipynb
-background.js

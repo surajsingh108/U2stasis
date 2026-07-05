@@ -1,7 +1,6 @@
-const monitorDiv     = document.getElementById('monitor');
-const intervalSelect = document.getElementById('interval');
-const runNowBtn      = document.getElementById('runNow');
-const resultDiv      = document.getElementById('result');
+const monitorDiv   = document.getElementById('monitor');
+const exportBtn    = document.getElementById('exportBtn');
+const exportStatus = document.getElementById('exportStatus');
 
 function esc(str) {
     return String(str).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -110,64 +109,36 @@ async function pollStatus() {
 pollStatus();
 setInterval(pollStatus, 6000);
 
-// --- Diagnostics ---
+// --- Export History ---
+async function exportHistory() {
+    if (!exportBtn) return;
+    exportBtn.disabled = true;
+    exportBtn.textContent = 'Exporting...';
 
-function renderResult(stored) {
-    if (!stored?.timestamp) { resultDiv.textContent = 'No diagnostics run yet.'; return; }
-    const when = new Date(stored.timestamp).toLocaleString();
-    if (stored.error) {
-        resultDiv.innerHTML = `<div class="timestamp">${when}</div><div class="flag">${esc(stored.error)}</div>`;
-        return;
+    const { sessionHistory = [] } = await chrome.storage.local.get('sessionHistory');
+
+    const json = JSON.stringify(sessionHistory, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `session_history_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    if (exportStatus) {
+        exportStatus.textContent = `✓ Exported ${sessionHistory.length} sessions`;
+        exportStatus.style.color = 'green';
+        setTimeout(() => {
+            exportStatus.textContent = '';
+            exportBtn.disabled = false;
+            exportBtn.textContent = 'Export & Save History';
+        }, 3000);
     }
-    const a = stored.analysis || {};
-    const flags   = (a.red_flags || []).map(f => `<div class="flag">&#9888; ${esc(f)}</div>`).join('');
-    const changes = (a.suggested_changes || []).map(c => `
-        <div class="change">&bull; <b>${esc(c.parameter)}</b>: ${esc(c.current_value)} &rarr; ${esc(c.suggested_value)}
-        <div class="rationale">${esc(c.rationale)}</div></div>`).join('');
-    resultDiv.innerHTML = `
-        <div class="timestamp">${when} &middot; ${stored.session_count_analyzed ?? 0} sessions analyzed</div>
-        <div>${esc(a.summary || '')}</div>${flags}${changes}`;
 }
 
-async function runDiagnostics() {
-    runNowBtn.disabled = true;
-    runNowBtn.textContent = 'Analysing...';
-    const { sessionHistory = [], lrWeights } = await chrome.storage.local.get(['sessionHistory', 'lrWeights']);
-    const n = sessionHistory.length;
-    const w = lrWeights || [1.0, 0.5, -0.3, -0.5, -0.2, 0.0];
-    const stayed = sessionHistory.filter(s => s.user_stayed).length;
-    const stored = {
-        timestamp: new Date().toISOString(),
-        session_count_analyzed: n,
-        analysis: {
-            summary: n < 5
-                ? `Only ${n} video${n !== 1 ? 's' : ''} trained on so far — predictions will improve with more data.`
-                : `Trained on ${n} videos (${stayed} finished, ${n - stayed} dropped). Weights: align=${w[0].toFixed(2)}, eng=${w[1].toFixed(2)}, seek=${w[2].toFixed(2)}, hidden=${w[3].toFixed(2)}, pause=${w[4].toFixed(2)}.`,
-            red_flags: n < 5 ? ['Too few training examples for reliable predictions'] : [],
-            suggested_changes: [],
-        }
-    };
-    await chrome.storage.local.set({ lastDiagnostic: stored });
-    renderResult(stored);
-    runNowBtn.disabled = false;
-    runNowBtn.textContent = 'Run diagnostics now';
+if (exportBtn) {
+    exportBtn.addEventListener('click', exportHistory);
 }
-
-runNowBtn.addEventListener('click', runDiagnostics);
-
-intervalSelect.addEventListener('change', () => {
-    chrome.storage.local.set({ periodicIntervalMinutes: Number(intervalSelect.value) });
-});
-
-chrome.storage.local.get(['periodicIntervalMinutes', 'lastDiagnostic'], (stored) => {
-    const minutes = stored.periodicIntervalMinutes || 0;
-    intervalSelect.value = String(minutes);
-    if (intervalSelect.value !== String(minutes)) {
-        const opt = document.createElement('option');
-        opt.value = String(minutes);
-        opt.textContent = `Every ${minutes} minutes (custom)`;
-        intervalSelect.appendChild(opt);
-        intervalSelect.value = String(minutes);
-    }
-    renderResult(stored.lastDiagnostic);
-});

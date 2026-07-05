@@ -48,17 +48,9 @@
 
   hr { border: none; border-top: 1px solid #e8e8e8; margin: 12px 0; }
 
-  /* Diagnostics */
-  label { font-size: 12px; color: #555; display: block; margin-bottom: 4px; }
-  select, button { font-size: 13px; padding: 7px; width: 100%; margin-bottom: 10px; border-radius: 4px; }
-  select { border: 1px solid #ccc; }
-  button { cursor: pointer; background: #1a73e8; color: white; border: none; }
+  /* Buttons */
+  button { font-size: 13px; padding: 7px; width: 100%; margin-bottom: 10px; border-radius: 4px; cursor: pointer; background: #1a73e8; color: white; border: none; }
   button:disabled { background: #99b9e8; cursor: default; }
-  #result { font-size: 12px; line-height: 1.5; }
-  .flag { color: #c5221f; margin-bottom: 4px; }
-  .change { margin-bottom: 6px; }
-  .rationale { color: #777; }
-  .timestamp { color: #888; font-size: 11px; margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -67,16 +59,9 @@
 
   <hr>
 
-  <h2>Model diagnostics</h2>
-  <label for="interval">Run automatically</label>
-  <select id="interval">
-    <option value="0">Off (on demand only)</option>
-    <option value="360">Every 6 hours</option>
-    <option value="1440">Every 24 hours</option>
-    <option value="10080">Every 7 days</option>
-  </select>
-  <button id="runNow">Run diagnostics now</button>
-  <div id="result">No diagnostics run yet.</div>
+  <h2>Data export</h2>
+  <button id="exportBtn">Export & Save History</button>
+  <div id="exportStatus" style="font-size: 12px; margin-top: 8px;"></div>
 
   <script src="popup.js"></script>
 </body>

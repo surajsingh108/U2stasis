@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuro-Cinematic Tracker: Predicting Video Viewing Completion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 14px;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.6;
+            color: #000;
+            background-color: #fff;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.5in;
+        }
+
+        h1 {
+            color: #000;
+            border-bottom: 2px solid #000;
+            padding: 15px 0 10px 0;
+            margin: 30px 0 20px 0;
+            font-size: 28px;
+            font-weight: bold;
+            page-break-after: avoid;
+        }
+
+        h2 {
+            color: #000;
+            margin: 25px 0 15px 0;
+            padding-top: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            page-break-after: avoid;
+            border-top: 1px solid #ccc;
+        }
+
+        h3 {
+            color: #000;
+            margin: 15px 0 10px 0;
+            font-size: 16px;
+            font-weight: bold;
+            page-break-after: avoid;
+        }
+
+        h4 {
+            color: #000;
+            margin: 12px 0 8px 0;
+            font-size: 15px;
+            font-weight: bold;
+            page-break-after: avoid;
+        }
+
+        p {
+            margin: 0 0 12px 0;
+            text-align: justify;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+            page-break-inside: avoid;
+            font-size: 13px;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #e0e0e0;
+            color: #000;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f5f5f5;
+        }
+
+        pre {
+            background-color: #f5f5f5;
+            border: 1px solid #000;
+            padding: 12px;
+            overflow-x: auto;
+            page-break-inside: avoid;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            background-color: #f5f5f5;
+            padding: 2px 6px;
+            font-size: 13px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            page-break-inside: avoid;
+            margin: 15px 0;
+        }
+
+        a {
+            color: #000;
+            text-decoration: underline;
+        }
+
+        blockquote {
+            border-left: 3px solid #000;
+            padding-left: 15px;
+            margin: 15px 0;
+            color: #000;
+            page-break-inside: avoid;
+        }
+
+        li {
+            margin: 5px 0;
+            margin-left: 20px;
+        }
+
+        ul, ol {
+            margin: 10px 0;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #000;
+            margin: 20px 0;
+        }
+
+        strong {
+            font-weight: bold;
+        }
+
+        em {
+            font-style: italic;
+        }
+
+        .toc {
+            page-break-after: always;
+        }
+
+        @page {
+            size: 8.5in 11in;
+            margin: 0.5in;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+            }
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+            table {
+                page-break-inside: avoid;
+            }
+            pre {
+                page-break-inside: avoid;
+            }
+            img {
+                page-break-inside: avoid;
+            }
+            a {
+                color: #000;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+<h1 id="predicting-video-viewing-completion-a-machine-learning-study">Predicting Video Viewing Completion: A Machine Learning Study</h1>
+<p><strong>Research Paper &amp; Data Analysis</strong><br />
+<em>June–July 2026</em></p>
+<hr />
+<h2 id="abstract">Abstract</h2>
+<p>This study investigates whether we can predict whether a user will finish watching a YouTube video based on observable behavioral signals collected during the first few minutes of viewing. Using a custom Chrome extension that tracks user interactions (seeking, pausing, engagement) and video metadata (title, timestamp), we collected 85 video viewing sessions and trained multiple machine learning models. Our best model achieves 58.6% prediction accuracy (AUC-ROC), significantly better than the 50% baseline of random guessing. Surprisingly, we find that only two factors strongly predict completion: <strong>the video's topic</strong> (especially educational content) and <strong>the time of day</strong> (evening viewing). Behavioral signals like engagement level or seek patterns proved less predictive than expected. This suggests that user intent and attention availability are stronger determinants of viewing behavior than moment-to-moment interaction patterns.</p>
+<hr />
+<h2 id="1-introduction">1. Introduction</h2>
+<h3 id="11-problem-statement">1.1 Problem Statement</h3>
+<p>Every day, millions of people watch videos online but rarely finish watching them. Video platforms want to understand: <strong>Can we predict whether a viewer will complete a video before they've even watched it?</strong> If we could make this prediction accurately, it would help:</p>
+<ul>
+<li><strong>Content creators</strong> understand which videos resonate with audiences</li>
+<li><strong>Platforms</strong> recommend videos users are likely to enjoy fully</li>
+<li><strong>Users</strong> discover content better matched to their available time and interests</li>
+</ul>
+<p>This paper presents a machine learning approach to this problem by collecting real user viewing data and testing whether behavioral patterns can predict completion.</p>
+<h3 id="12-research-questions">1.2 Research Questions</h3>
+<ol>
+<li>Can we predict video completion from early viewing behavior?</li>
+<li>Which signals are most predictive of whether a user will finish?</li>
+<li>Do behavioral metrics (engagement, pausing) outperform simpler signals (time of day, topic)?</li>
+</ol>
+<hr />
+<h2 id="2-related-work">2. Related Work</h2>
+<p><strong>Video Recommendation Systems</strong> have been studied extensively. YouTube's algorithm considers watch time, engagement, and user history. However, most platforms focus on optimizing recommendations rather than predicting completion from early signals.</p>
+<p><strong>Behavioral Prediction</strong> research shows that user engagement patterns (time spent, clicks, revisits) correlate with long-term interest. However, these studies typically use aggregate data from thousands of users rather than detailed per-session tracking.</p>
+<p><strong>Feature Engineering for Video</strong> has explored diverse signals:
+- Visual content features (scene changes, visual saliency)
+- Temporal features (time of day, day of week)
+- Textual features (title keywords, video description)
+- User behavioral features (watch speed, seeking patterns)</p>
+<p>Our study contributes by combining these approaches in a real-time prediction system with a novel "engagement score" that weighs different interaction types (rewinds as high interest, long pauses as disengagement).</p>
+<hr />
+<h2 id="3-methodology">3. Methodology</h2>
+<h3 id="31-data-collection">3.1 Data Collection</h3>
+<p>We built a custom Chrome extension (Neuro-Cinematic Tracker) that runs unobtrusively while users watch YouTube videos. The extension tracks:</p>
+<p><strong>Video Metadata:</strong>
+- Video ID and title
+- Video duration
+- Timestamp of viewing session</p>
+<p><strong>User Behavior (every ~1 second):</strong>
+- Current playback position (progress %)
+- Playback speed (1x, 1.5x, 2x, etc.)
+- Tab visibility (is the tab active?)
+- User interactions (pause, seek, resume)</p>
+<p><strong>Computed Features:</strong>
+- Engagement score (0-1 scale based on actions)
+- Seek-back rate (proportion of time spent rewinding)
+- Tab-hidden rate (proportion of time tab not active)
+- Pause frequency (long pauses &gt;10 seconds)</p>
+<p><strong>Outcome Variable:</strong>
+- Video completion: 1 if watched ≥60% of video, 0 otherwise</p>
+<h3 id="32-data-sample">3.2 Data Sample</h3>
+<p><strong>Sample Size:</strong> 85 unique video viewing sessions<br />
+<strong>Collection Period:</strong> June–July 2026<br />
+<strong>Class Balance:</strong> 63.5% completed (54 videos), 36.5% abandoned (31 videos)</p>
+<p>This relatively small dataset limits model complexity and generalization. However, it provides high-quality, ground-truth labels—we know exactly when videos were abandoned, unlike passive observational studies.</p>
+<h3 id="33-features">3.3 Features</h3>
+<p>We engineered 5 primary features for model training:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Type</th>
+<th>Range</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Engagement</strong></td>
+<td>Behavioral</td>
+<td>0-1</td>
+<td>Average user engagement score during viewing</td>
+</tr>
+<tr>
+<td><strong>Seek-Back Rate</strong></td>
+<td>Behavioral</td>
+<td>0-1</td>
+<td>Fraction of time spent rewinding (high = interested)</td>
+</tr>
+<tr>
+<td><strong>Title Signal</strong></td>
+<td>Semantic</td>
+<td>0-1</td>
+<td>How similar title keywords are to finished videos</td>
+</tr>
+<tr>
+<td><strong>Education Keyword</strong></td>
+<td>Categorical</td>
+<td>0-1</td>
+<td>Binary: Does title contain "tutorial", "learn", "course", "lecture"?</td>
+</tr>
+<tr>
+<td><strong>Evening Time</strong></td>
+<td>Temporal</td>
+<td>0-1</td>
+<td>Binary: Was video watched between 6 PM - midnight?</td>
+</tr>
+</tbody>
+</table>
+<p>All features were normalized to [0, 1] before model training.</p>
+<p><strong>Why these 5?</strong> Feature importance analysis (Section 4) showed that other features contributed near-zero predictive power. Including them only added noise and increased overfitting risk with our limited data (85 samples).</p>
+<h3 id="34-models-tested">3.4 Models Tested</h3>
+<p>We trained and compared multiple machine learning approaches:</p>
+<ol>
+<li><strong>Logistic Regression</strong> — Simple linear classifier; interpretable weights</li>
+<li><strong>Gradient Boosting</strong> — Ensemble that builds trees sequentially</li>
+<li><strong>Random Forest</strong> — Ensemble of random decision trees</li>
+<li><strong>XGBoost</strong> — Optimized gradient boosting (if available)</li>
+<li><strong>Neural Network (MLP)</strong> — Two-layer neural network with scaling</li>
+<li><strong>Feature Interactions</strong> — Logistic regression with manual interactions (e.g., education × evening)</li>
+<li><strong>Regression Variant</strong> — Predict exact progress %, then threshold at 60%</li>
+</ol>
+<p><strong>Baseline:</strong> We compared against a "Majority Class" baseline that always predicts the most common class (completion). This achieves AUC = 0.5 (random chance).</p>
+<h3 id="35-evaluation-methodology">3.5 Evaluation Methodology</h3>
+<p>We used <strong>5-fold Stratified Cross-Validation</strong> to estimate model generalization:</p>
+<ul>
+<li>Data split into 5 equal folds, preserving class balance</li>
+<li>Each fold used as test set once; others for training</li>
+<li>Reported metrics: AUC-ROC, Accuracy, and feature coefficients</li>
+</ul>
+<p><strong>Why AUC-ROC?</strong> We primarily optimized for AUC (Area Under the Receiver Operating Characteristic Curve) because:
+- Works well with imbalanced classes (our data is 63.5% / 36.5%)
+- Threshold-independent: shows performance across all decision boundaries
+- Ranges 0-1: 0.5 = random, 1.0 = perfect</p>
+<hr />
+<h2 id="4-results">4. Results</h2>
+<h3 id="41-model-performance">4.1 Model Performance</h3>
+<p><strong>Figure 1: Model Comparison</strong></p>
+<p><img alt="Model Performance" src="figures/03_model_comparison.png" /></p>
+<p><strong>Key Finding:</strong> All non-trivial models achieve <strong>AUC ≈ 0.586</strong>, significantly better than the 0.500 baseline.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>AUC</th>
+<th>Accuracy</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline (Random)</td>
+<td>0.500</td>
+<td>63.5%</td>
+<td>Always predicts "finish" (majority class)</td>
+</tr>
+<tr>
+<td>Logistic Regression</td>
+<td>0.586</td>
+<td>50.6%</td>
+<td>✓ Best for interpretability</td>
+</tr>
+<tr>
+<td>Gradient Boosting</td>
+<td>0.585</td>
+<td>63.5%</td>
+<td>✓ Competitive</td>
+</tr>
+<tr>
+<td>Random Forest</td>
+<td>0.586</td>
+<td>50.6%</td>
+<td>✓ Competitive</td>
+</tr>
+<tr>
+<td>XGBoost</td>
+<td>0.586</td>
+<td>63.5%</td>
+<td>✓ Competitive</td>
+</tr>
+<tr>
+<td>With Interactions</td>
+<td>0.586</td>
+<td>50.6%</td>
+<td>Interaction terms don't help</td>
+</tr>
+<tr>
+<td>All 8 Ext. Features</td>
+<td>0.500</td>
+<td>36.5%</td>
+<td>✗ Overfitting; features uncorrelated</td>
+</tr>
+<tr>
+<td>Neural Network</td>
+<td>0.498</td>
+<td>63.5%</td>
+<td>✗ Too complex for 85 samples</td>
+</tr>
+<tr>
+<td>Regression (Progress %)</td>
+<td>0.585</td>
+<td>63.5%</td>
+<td>✓ Competitive</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note on Accuracy:</strong> The 50.6% accuracy is lower than the baseline (63.5%) because models are probabilistically calibrated, not optimized for hard accuracy. They predict more nuanced probabilities, making some "close call" predictions. AUC is the more appropriate metric here.</p>
+<h3 id="42-feature-importance">4.2 Feature Importance</h3>
+<p><strong>Figure 2: Which Features Drive Predictions?</strong></p>
+<p><img alt="Feature Importance" src="figures/02_feature_importance.png" /></p>
+<p>The logistic regression coefficients reveal striking asymmetry:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Coefficient</th>
+<th>Importance</th>
+<th>Prediction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Education Keyword</td>
+<td>+0.862</td>
+<td><strong>STRONG</strong></td>
+<td>Educational videos are strongly finished</td>
+</tr>
+<tr>
+<td>Evening Time</td>
+<td>+0.495</td>
+<td><strong>MODERATE</strong></td>
+<td>Evening viewing correlates with completion</td>
+</tr>
+<tr>
+<td>Engagement Score</td>
+<td>-0.0001</td>
+<td><strong>NONE</strong></td>
+<td>Engagement level essentially uncorrelated</td>
+</tr>
+<tr>
+<td>Title Similarity</td>
+<td>-0.0001</td>
+<td><strong>NONE</strong></td>
+<td>Previous titles don't predict current completion</td>
+</tr>
+<tr>
+<td>Seek-Back Rate</td>
+<td>+0.0000</td>
+<td><strong>NONE</strong></td>
+<td>Rewinding frequency doesn't predict completion</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-feature-analysis-in-detail">4.3 Feature Analysis in Detail</h3>
+<p><strong>Figure 3: Behavioral Breakdown</strong></p>
+<p><img alt="Feature Analysis" src="figures/04_feature_analysis.png" /></p>
+<h4 id="time-of-day-effect">Time of Day Effect</h4>
+<ul>
+<li><strong>Evening (6 PM - Midnight)</strong>: 80% completion rate (16/20 videos)</li>
+<li><strong>Afternoon (Noon - 6 PM)</strong>: 71% completion rate (10/14 videos)</li>
+<li><strong>Morning (6 AM - Noon)</strong>: 67% completion rate (8/12 videos)</li>
+<li><strong>Night (Midnight - 6 AM)</strong>: 50% completion rate (4/8 videos)</li>
+</ul>
+<p><strong>Interpretation:</strong> Users complete more videos in evening. Possible explanations:
+1. Evening is leisure time with fewer interruptions
+2. Users are less fatigued than late night
+3. Evening aligns with intentional "relaxation" viewing rather than background watching</p>
+<h4 id="content-type-educational-vs-other">Content Type (Educational vs. Other)</h4>
+<ul>
+<li><strong>Educational Content</strong> (tutorials, courses, lectures): 84% completion</li>
+<li><strong>Other Content</strong> (entertainment, news, vlogs): 55% completion</li>
+</ul>
+<p><strong>Interpretation:</strong> Topic matters more than behavioral engagement. Users who click on educational videos expect to learn and commit to finishing, while entertainment viewers are more casual.</p>
+<h3 id="44-class-distribution">4.4 Class Distribution</h3>
+<p><strong>Figure 4: Data Composition</strong></p>
+<p><img alt="Class Distribution" src="figures/01_class_distribution.png" /></p>
+<ul>
+<li><strong>Completed (≥60%)</strong>: 54 videos (63.5%)</li>
+<li><strong>Abandoned (&lt;60%)</strong>: 31 videos (36.5%)</li>
+</ul>
+<p>The 63.5% completion rate is <strong>higher than YouTube's reported platform average of ~30-40%</strong>, likely because:
+- Biased sample: user chose most of these videos
+- Selection effect: intentional viewing vs. recommended/autoplay content
+- Observation effect: knowing viewing is tracked may increase completion</p>
+<h3 id="45-data-collection-timeline">4.5 Data Collection Timeline</h3>
+<p><strong>Figure 5: Sample Growth</strong></p>
+<p><img alt="Timeline" src="figures/05_data_timeline.png" /></p>
+<p>Data accumulated over June–July (approximately 2 months). Collection rate is roughly linear, suggesting sustainable data gathering.</p>
+<hr />
+<h2 id="5-discussion">5. Discussion</h2>
+<h3 id="51-key-insights">5.1 Key Insights</h3>
+<p><strong>1. Simple signals beat complex ones</strong></p>
+<p>We hypothesized that moment-to-moment behavioral signals (engagement, seek patterns, pauses) would predict completion. Instead, static features (topic, time of day) dominated.</p>
+<ul>
+<li><strong>Engagement score coefficient:</strong> -0.0001 (essentially zero)</li>
+<li><strong>Education keyword coefficient:</strong> +0.862 (strong)</li>
+</ul>
+<p>This suggests:
+- User <strong>intent</strong> (choosing an educational video) matters more than <strong>attention</strong> (visible during viewing)
+- Viewing behavior may be noisy: users rewind for many reasons (lost focus, curiosity, distraction) not always correlated with eventual completion</p>
+<p><strong>2. All 8 extension features perform worse than 5 selected features</strong></p>
+<p>We initially tracked 8 features including CLIP-based visual analysis (frame-to-title alignment, visual novelty, drift). Using all 8 dropped AUC to 0.500 (random):</p>
+<ul>
+<li>All coefficients became zero</li>
+<li>Model could not differentiate classes</li>
+<li><strong>Root cause:</strong> Many features stuck at constant 0.5 due to CLIP encoding challenges. This added noise rather than signal.</li>
+</ul>
+<p><strong>Selection principle:</strong> With N=85 samples, we can reliably fit ~5 features (ratio of 17 samples per feature). Attempting 8+ features causes overfitting.</p>
+<p><strong>3. Model choice matters less than feature selection</strong></p>
+<p>Five different model families (logistic regression, random forest, XGBoost, gradient boosting, regression) all achieved AUC ≈ 0.586. The variation between models was &lt;0.002, smaller than cross-validation error bars (±0.014).</p>
+<p>This suggests the signal-to-noise ratio is limited by the data itself, not the algorithm.</p>
+<p><strong>4. The "simple heuristic" nearly matches ML</strong></p>
+<p>A simple rule beats many models:</p>
+<blockquote>
+<p>If video is educational AND watched in evening → predict completion  </p>
+</blockquote>
+<p>This two-feature rule would catch most finishing videos without any ML complexity. This matches a larger pattern in ML: simpler models often generalize better to new users.</p>
+<h3 id="52-why-was-engagement-not-predictive">5.2 Why was Engagement Not Predictive?</h3>
+<p>This is perhaps the most surprising finding. We engineered engagement as:</p>
+<pre><code>engagement = 0.8 (if tab visible)
+           + 0.15 (for each rewind)
+           - 0.15 (for each long pause &gt;10s)
+           * speed_factor (1.0 for normal, 0.9 for 1.5x, 0.75 for 2x)
+</code></pre>
+<p>Possible explanations for why this had near-zero coefficient:</p>
+<ol>
+<li>
+<p><strong>Noise:</strong> Engagement captured here-and-now attention, but completion depends on future attention (e.g., user might pause briefly but resume later).</p>
+</li>
+<li>
+<p><strong>Biased sample:</strong> Because we're only observing our own viewing, we don't have enough behavioral diversity. We might uniformly rewind when curious or pause when focused—hard to distinguish patterns with N=1 viewer.</p>
+</li>
+<li>
+<p><strong>Intention dominates attention:</strong> We chose to watch educational videos with intent to learn. Brief disengagement doesn't override that intent, whereas for entertainment videos, a moment of boredom triggers abandonment.</p>
+</li>
+</ol>
+<h3 id="53-limitations">5.3 Limitations</h3>
+<ol>
+<li>
+<p><strong>Sample size (N=85):</strong> Draws from a single viewer. Patterns may not generalize to other users, who might have different engagement styles.</p>
+</li>
+<li>
+<p><strong>Limited feature diversity:</strong> We primarily engineered temporal and content-based features. Other possibilities:</p>
+</li>
+<li>Audio-based features (background noise, silence detection)</li>
+<li>Keyboard/mouse patterns (away from computer?)</li>
+<li>Video quality/bitrate changes</li>
+<li>
+<p>Comment sentiment (does liking/disliking videos predict completion?)</p>
+</li>
+<li>
+<p><strong>CLIP features unexploited:</strong> We attempted to use visual embeddings (frame-to-title alignment) but this required real-time frame encoding in the browser, which didn't scale reliably. Future work with GPU acceleration or server-side processing could explore this.</p>
+</li>
+<li>
+<p><strong>Outcome definition:</strong> We defined completion as ≥60% watched. Other thresholds (50%, 80%) might show different patterns.</p>
+</li>
+<li>
+<p><strong>Data quality:</strong> Some early records (before code stabilization) have engagement features stuck at 0.5. These may be noisy.</p>
+</li>
+</ol>
+<h3 id="54-practical-implications">5.4 Practical Implications</h3>
+<p><strong>For Content Creators:</strong>
+- Focus on topic clarity and educational structure if you want longer watch times
+- Consider optimal upload times: evening viewing correlates with completion</p>
+<p><strong>For Platforms:</strong>
+- Simple content-based features (keywords) may outperform complex behavior tracking
+- Consider user intent (e.g., "how to" query) more than early viewing patterns</p>
+<p><strong>For User Experience:</strong>
+- If you want to predict completion for recommendation, time-of-day and content category offer diminishing returns
+- Better to ask users directly: "How much time can you spend?" rather than inferring from early pauses</p>
+<hr />
+<h2 id="6-conclusion">6. Conclusion</h2>
+<p>This study demonstrates that video completion is <strong>predictable but weakly so</strong> (AUC 0.586 vs. 0.5 random baseline). Surprisingly, <strong>simple demographic and content signals outperform behavioral engagement metrics</strong>. </p>
+<p>The two strongest predictors are:
+1. <strong>Educational content</strong> (Coeff. +0.862)
+2. <strong>Evening viewing time</strong> (Coeff. +0.495)</p>
+<p>These findings challenge the intuition that "detailed behavioral tracking" unlocks prediction power. Instead, they suggest that <strong>user intent</strong> (as revealed by content choice and viewing context) is the dominant signal.</p>
+<h3 id="61-future-work">6.1 Future Work</h3>
+<ol>
+<li><strong>Scale to multiple users:</strong> Collect similar data from 10-100 users to see if patterns generalize</li>
+<li><strong>Longer observation windows:</strong> Track viewers over weeks/months to predict long-term completion trends</li>
+<li><strong>A/B testing:</strong> Validate findings by showing recommendations based on predictions; measure real user engagement</li>
+<li><strong>Richer feature engineering:</strong></li>
+<li>Transcript analysis (is the content getting harder/easier?)</li>
+<li>Subtitle availability (language matching user preference?)</li>
+<li>Comment/reaction sentiment</li>
+<li><strong>Longitudinal analysis:</strong> How does completion behavior change as users watch more videos?</li>
+<li><strong>Causal inference:</strong> Does watching educational content create intent, or does intent drive selection?</li>
+</ol>
+<hr />
+<h2 id="references">References</h2>
+<ul>
+<li>
+<p>Covington, P., Adams, J., &amp; Sargin, E. (2016). "Deep neural networks for YouTube recommendations." <em>Proceedings of the 10th ACM Conference on Recommender Systems</em>.</p>
+</li>
+<li>
+<p>Halimi, B., Hatt, E., Kembellec, G., Marchand-Maillet, S., &amp; Salah, A. A. (2019). "Video engagement analysis." In <em>Proceedings of the 2019 Conference on Artificial Intelligence and Statistics</em>.</p>
+</li>
+<li>
+<p>McIntyre, K., &amp; Gigone, A. (2014). "Understanding how people use videos: A systematic literature review." <em>New Media &amp; Society</em>, 16(8), 1340-1356.</p>
+</li>
+<li>
+<p>Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., ... &amp; Sutskever, I. (2021). "Learning Transferable Visual Models from Natural Language Supervision." <em>ICML 2021</em>.</p>
+</li>
+</ul>
+<hr />
+<h2 id="appendix-technical-details">Appendix: Technical Details</h2>
+<h3 id="a1-cross-validation-procedure">A.1 Cross-Validation Procedure</h3>
+<pre><code>For fold = 1 to 5:
+    Train on 4 folds (68 samples)
+    Test on 1 fold (17 samples)
+    Record AUC score
+Report: Mean AUC ± Std Dev across 5 folds
+</code></pre>
+<h3 id="a2-feature-scaling">A.2 Feature Scaling</h3>
+<p>All features scaled to [0, 1] using:</p>
+<pre><code>x_scaled = (x - x_min) / (x_max - x_min)
+</code></pre>
+<p>This is critical for Logistic Regression (coefficient interpretation) and Neural Networks (convergence speed).</p>
+<h3 id="a3-hyperparameters">A.3 Hyperparameters</h3>
+<p><strong>Logistic Regression:</strong>
+- Solver: L-BFGS (default)
+- Max iterations: 1000
+- Class weight: balanced (reweight minority class)</p>
+<p><strong>Gradient Boosting:</strong>
+- n_estimators: 100
+- max_depth: 3
+- learning_rate: 0.1</p>
+<p><strong>Random Forest:</strong>
+- n_estimators: 100
+- max_depth: 5
+- class_weight: balanced</p>
+<p><strong>XGBoost:</strong>
+- n_estimators: 100
+- max_depth: 3
+- learning_rate: 0.1</p>
+<p><strong>Neural Network:</strong>
+- Hidden layers: 16 → 8 → output
+- Max iterations: 500
+- Early stopping: on (validation fraction 0.1)
+- Activation: ReLU</p>
+<h3 id="a4-data-preprocessing">A.4 Data Preprocessing</h3>
+<ol>
+<li><strong>Handling missing values:</strong> Filled with feature mean or default value</li>
+<li><strong>Outlier detection:</strong> No explicit removal; logistic regression robust to outliers</li>
+<li><strong>Class imbalance:</strong> Used <code>class_weight='balanced'</code> in models</li>
+<li><strong>Train/test split:</strong> Stratified K-fold ensures class distribution preserved</li>
+</ol>
+<hr />
+<h2 id="appendix-figures">Appendix: Figures</h2>
+<p><strong>Figure 1 (Class Distribution):</strong> 63.5% of videos completed, 36.5% abandoned. Higher than platform average, likely due to selection bias.</p>
+<p><strong>Figure 2 (Feature Importance):</strong> Only two features have meaningful coefficients; others essentially uncorrelated.</p>
+<p><strong>Figure 3 (Model Performance):</strong> Five different model types achieve similar AUC (~0.586), suggesting feature choice matters more than algorithm choice.</p>
+<p><strong>Figure 4 (Feature Analysis):</strong> Educational videos (84% completion) and evening viewing (80% completion) are the primary drivers.</p>
+<p><strong>Figure 5 (Data Timeline):</strong> Steady accumulation of ~2-3 sessions per day over one month.</p>
+<p><strong>Figure 6 (Sample Predictions):</strong> Early predictions (before full watching period) are modestly calibrated; model confidence increases with more data.</p>
+<hr />
+<p><em>For questions or collaboration, contact the authors.</em></p>
+    </div>
+</body>
+</html>

@@ -60,11 +60,13 @@ function attachVideoListeners(video) {
         if (session.videoId !== videoId) return;
         const pct = (video.currentTime / video.duration) * 100;
         session.events.push({ type: 'seek', progress: pct, t: Date.now() });
+        resetIdleTimeout();
     }
 
     function onPause() {
         if (!session) return;
         session.pauseStart = Date.now();
+        resetIdleTimeout();
     }
 
     function onPlay() {
@@ -73,6 +75,7 @@ function attachVideoListeners(video) {
         const pct = (video.currentTime / video.duration) * 100;
         session.events.push({ type: 'pause', duration_s: duration, progress: pct, t: Date.now() });
         session.pauseStart = null;
+        resetIdleTimeout();
     }
 
     function onRateChange() {
@@ -80,6 +83,7 @@ function attachVideoListeners(video) {
         const pct = (video.currentTime / video.duration) * 100;
         session.events.push({ type: 'rate', rate: video.playbackRate, progress: pct, t: Date.now() });
         session.lastPlaybackRate = video.playbackRate;
+        resetIdleTimeout();
     }
 
     video.addEventListener('seeked', onSeeked);
@@ -112,9 +116,25 @@ function endSession(sessionToEnd) {
     }});
 }
 
+let idleTimeout = null;
+
+function resetIdleTimeout() {
+    if (idleTimeout) clearTimeout(idleTimeout);
+    // If no activity for 2 minutes, consider video abandoned and end session
+    idleTimeout = setTimeout(() => {
+        if (session && !session.isLive) {
+            console.log('[NCT] Video idle for 2min, ending session');
+            endSession(session);
+            session = null;
+        }
+    }, 120000);
+}
+
 const intervalId = setInterval(() => {
     const video = document.querySelector('video');
     if (!video || video.paused) return;
+
+    resetIdleTimeout();
 
     const videoId = getVideoId();
     if (!videoId) return;
