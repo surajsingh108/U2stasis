@@ -7,7 +7,12 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
-  "host_permissions": ["https://huggingface.co/*", "https://cdn-lfs.huggingface.co/*", "https://cdn-lfs-us-1.huggingface.co/*"],
+  "web_accessible_resources": [
+    {
+      "resources": ["transformers.min.js"],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/watch*"],

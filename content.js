@@ -110,9 +110,15 @@ document.addEventListener('visibilitychange', () => {
 
 function endSession(sessionToEnd) {
     if (!sessionToEnd || sessionToEnd.isLive) return;
+
+    // Capture one frame at the end for offline CLIP processing
+    const video = document.querySelector('video');
+    const frameData = video ? captureFrame(video) : null;
+
     sendToBackground({ type: 'video_ended', payload: {
         video_id: sessionToEnd.videoId,
         final_progress_percent: sessionToEnd.lastProgress,
+        frame_data: frameData,  // Base64 data URL for deferred CLIP processing
     }});
 }
 
@@ -144,6 +150,7 @@ const intervalId = setInterval(() => {
         session = freshSession(videoId, video);
         frameCaptureBlocked = false;
         attachVideoListeners(video);
+        console.log("[NCT] Session started:", videoId);
     } else if (session.isLive && Number.isFinite(video.duration)) {
         session.isLive = false;
     }
@@ -162,7 +169,6 @@ const intervalId = setInterval(() => {
         duration_s: video.duration,
         playback_rate: video.playbackRate,
         tab_hidden: session.tabHidden,
-        frame: captureFrame(video),
         events,
     }});
 }, SAMPLE_INTERVAL_MS);

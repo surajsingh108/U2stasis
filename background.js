@@ -1,47 +1,11 @@
-import { pipeline, env } from './transformers.min.js';
-
-env.allowRemoteModels = true;
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-
-const WARMUP_WEIGHTS = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]; // align, novelty, drift, title_signal, engagement, seek_back, tab_hidden, long_pause, bias
+const WARMUP_WEIGHTS = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]; // title_signal, engagement, seek_back, tab_hidden, long_pause, bias
 const STAY_THRESHOLD = 80.0;
 const LR = 0.1;
 const TWIN_DECAY = 0.85;
 const AVG_DECAY  = 0.9;
 
-let textPipe  = null;
-let imagePipe = null;
-
-async function getTextPipe() {
-    if (!textPipe) textPipe = await pipeline('feature-extraction', 'Xenova/clip-vit-base-patch32', { revision: 'refs/pr/4' });
-    return textPipe;
-}
-
-async function getImagePipe() {
-    if (!imagePipe) imagePipe = await pipeline('image-feature-extraction', 'Xenova/clip-vit-base-patch32');
-    return imagePipe;
-}
-
-async function encode(input) {
-    if (typeof input === 'string' && input.startsWith('data:')) {
-        const pipe = await getImagePipe();
-        const result = await pipe(input);
-        const data = result.data;
-        const patchDim = 512;
-        const numPatches = data.length / patchDim;
-        const pooled = new Float32Array(patchDim);
-        for (let i = 0; i < numPatches; i++)
-            for (let j = 0; j < patchDim; j++)
-                pooled[j] += data[i * patchDim + j];
-        for (let j = 0; j < patchDim; j++) pooled[j] /= numPatches;
-        return Array.from(pooled);
-    } else {
-        const pipe = await getTextPipe();
-        const result = await pipe(input, { pooling: 'mean', normalize: true });
-        return Array.from(result.data);
-    }
-}
+// CLIP encoding moved to content.js (which has Web Worker support)
+// This service worker now only receives embeddings
 
 function dot(a, b)      { return a.reduce((s, v, i) => s + v * b[i], 0); }
 function norm(a)        { return Math.sqrt(a.reduce((s, v) => s + v * v, 0)) + 1e-8; }
@@ -86,18 +50,14 @@ const sessions = {};
 function getSession(videoId) {
     if (!sessions[videoId]) {
         sessions[videoId] = {
-            // CLIP state
-            digitalTwin: [0.5, 0.5],        // [alignment, visual_novelty_ema]
-            titleText: null,
-            titleEmbedding: null,
-            prevFrame: null,
-            sessionAvg: null,
             // behavioral state
             behaviorTwin: [0.5, 0.0, 0.0],  // [engagement_ema, seek_back_ema, tab_hidden_ema]
             seekBackCount: 0,
             longPauseCount: 0,
             tabHiddenTicks: 0,
             totalTicks: 0,
+            // frame for deferred CLIP processing
+            frame: null,
             // event timeline for the popup: [{type, progress, ...}]
             timeline: [],
             lastSeen: Date.now(),
@@ -186,7 +146,7 @@ function behaviorScore(events, tabHidden, playbackRate) {
 }
 
 async function handleTelemetry(payload) {
-    const { video_id, title, progress_percent, duration_s, playback_rate = 1, tab_hidden = false, frame, events = [] } = payload;
+    const { video_id, title, progress_percent, duration_s, playback_rate = 1, tab_hidden = false, events = [] } = payload;
     if (!video_id) return { error: 'missing video_id' };
 
     pruneOldSessions();
@@ -202,45 +162,11 @@ async function handleTelemetry(payload) {
     if (sess.timeline.length > 200) sess.timeline.splice(0, sess.timeline.length - 200);
     if (tab_hidden) sess.tabHiddenTicks++;
 
-    const PLACEHOLDER = ['', 'YouTube'];
-    if (title && !PLACEHOLDER.includes(title) && title !== sess.titleText) {
-        sess.titleText = title;
-        sess.titleEmbedding = await encode(title);
+    // Store frame for deferred CLIP processing in notebook
+    if (!sess.frame && frame_embedding) {
+        sess.frame = frame_embedding;  // frame_embedding is actually frame_data (base64 data URL)
+        console.log('[NCT] Frame stored for offline CLIP processing');
     }
-
-    // --- Visual signals (CLIP) ---
-    let alignment = 0.5;
-    let visualNovelty = 0.5;
-    let drift = 0.5;
-
-    if (frame) {
-        const frameEmb = await encode(frame);
-
-        if (!sess.prevFrame)  sess.prevFrame  = frameEmb;
-        if (!sess.sessionAvg) sess.sessionAvg = [...frameEmb];
-
-        if (sess.titleEmbedding)
-            alignment = (cosineSim(frameEmb, sess.titleEmbedding) + 1) / 2;
-
-        visualNovelty = (1 - cosineSim(frameEmb, sess.prevFrame)) / 2;
-
-        // Drift: distance from session baseline (how much we're drifting from average)
-        drift = (1 - cosineSim(frameEmb, sess.sessionAvg)) / 2;
-
-        sess.prevFrame  = frameEmb;
-        sess.sessionAvg = addVec(scaleVec(sess.sessionAvg, AVG_DECAY), scaleVec(frameEmb, 1 - AVG_DECAY));
-
-        sess.digitalTwin = addVec(
-            scaleVec(sess.digitalTwin, TWIN_DECAY),
-            scaleVec([alignment, visualNovelty], 1 - TWIN_DECAY)
-        );
-
-        console.log('[NCT] align:', alignment.toFixed(3), 'novelty:', visualNovelty.toFixed(3), 'drift:', drift.toFixed(3));
-    }
-
-    // Update drift twin (separate from alignment/novelty twin)
-    if (!sess.driftTwin) sess.driftTwin = 0.5;
-    sess.driftTwin = sess.driftTwin * TWIN_DECAY + drift * (1 - TWIN_DECAY);
 
     // --- Behavioral signals ---
     const engScore = behaviorScore(events, tab_hidden, playback_rate);
@@ -256,11 +182,9 @@ async function handleTelemetry(payload) {
     // --- Title-based signal ---
     const titleSignal = await getTitleSignal(title);
 
-    // Feature vector: [alignment, novelty, drift, title_signal, engagement, seek_back_rate, tab_hidden_rate, long_pause_rate]
+    // Feature vector: [title_signal, engagement, seek_back_rate, tab_hidden_rate, long_pause_rate]
+    // Visual features (alignment, novelty, drift) will be added in notebook after CLIP processing
     const features = [
-        sess.digitalTwin[0],   // alignment EMA
-        sess.digitalTwin[1],   // novelty EMA
-        sess.driftTwin,        // drift EMA
         titleSignal,           // title keyword similarity to finished videos
         sess.behaviorTwin[0],  // engagement EMA
         sess.behaviorTwin[1],  // seek-back rate
@@ -279,7 +203,6 @@ async function handleTelemetry(payload) {
         video_id,
         title: sess.titleText || title,
         retention_prediction: prediction,
-        alignment: sess.digitalTwin[0],
         engagement: sess.behaviorTwin[0],
         tab_hidden,
         playback_rate,
@@ -290,17 +213,17 @@ async function handleTelemetry(payload) {
     };
     await chrome.storage.local.set({ activeSession: displayState });
 
-    return { ...displayState, frame_used: !!frame };
+    return displayState;
 }
 
 async function handleVideoEnded(payload) {
-    const { video_id, final_progress_percent } = payload;
+    const { video_id, final_progress_percent, frame_data } = payload;
     if (!video_id) return;
 
     const sess = sessions[video_id];
     if (!sess) return;
 
-    const features = sess._lastFeatures || [0.5, 0.5, 0.5, 0.5, 0.5, 0, 0, 0];
+    const features = sess._lastFeatures || [0.5, 0.5, 0.5, 0.5, 0.5];
     const preUpdatePred = await predict(features);
     const userStayed = final_progress_percent >= STAY_THRESHOLD ? 1 : 0;
     const newWeights = await trainStep(features, userStayed);
@@ -311,16 +234,14 @@ async function handleVideoEnded(payload) {
         title: sess.titleText,
         final_progress_percent,
         user_stayed: userStayed,
-        alignment: features[0],
-        novelty: features[1],
-        drift: features[2],
-        title_signal: features[3],
-        engagement: features[4],
-        seek_back_rate: features[5],
-        tab_hidden_rate: features[6],
-        long_pause_rate: features[7],
+        title_signal: features[0],
+        engagement: features[1],
+        seek_back_rate: features[2],
+        tab_hidden_rate: features[3],
+        long_pause_rate: features[4],
         predicted_retention_before_update: preUpdatePred,
         weights_after: newWeights,
+        frame: frame_data,  // Base64 data URL for deferred CLIP processing
     });
 
     delete sessions[video_id];
@@ -332,12 +253,11 @@ async function handleStatus() {
     const w = lrWeights || WARMUP_WEIGHTS;
 
     let active = Object.entries(sessions).map(([id, sess]) => {
-        const features = sess._lastFeatures || [0.5, 0.5, 0.5, 0.5, 0.5, 0, 0, 0];
+        const features = sess._lastFeatures || [0.5, 0.5, 0.5, 0.5, 0.5];
         return {
             video_id: id,
             title: sess.titleText || id,
             retention_prediction: sigmoid(dot([...features, 1.0], w)) * 100,
-            alignment:    sess.digitalTwin[0],
             engagement:   sess.behaviorTwin[0],
             tab_hidden:   (sess.tabHiddenTicks / (sess.totalTicks || 1)) > 0.3,
             playback_rate: 1,
